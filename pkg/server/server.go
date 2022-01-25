@@ -37,10 +37,11 @@ func NewServer() *Server {
 		}
 	}()
 
+  // TODO: write back to sockets
 	// go func() {
 	// 	for msg := range server.InFromChat {
 	// 		log.Printf("server recv from chat: %s", msg.Message)
-  //     // server.sockets[msg.SocketId].In
+	//     // server.sockets[msg.SocketId].In
 	// 		// server.OutToSockets <- msg.FromMessage(string(msg.Message))
 	// 	}
 	// }()

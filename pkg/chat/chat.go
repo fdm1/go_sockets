@@ -59,11 +59,11 @@ func (c *Chat) ProcessMessage(msg server.Message) {
 		splitString := strings.Split(msg.Message, " ")
 		if len(splitString) > 1 {
 			c.JoinChannel(msg.SocketId, splitString[1])
-			outgoingMessage = fmt.Sprintf("You have joined %v", splitString[1])
+			outgoingMessage = fmt.Sprintf("You have joined %v\n", splitString[1])
 		}
 	} else if strings.HasPrefix(msg.Message, "!leave") {
 		c.LeaveChannel(msg.SocketId)
-		outgoingMessage = fmt.Sprintf("You have left your channel")
+		outgoingMessage = fmt.Sprintf("You have left your channel\n")
 	} else {
 		if channel, ok := c.socketChannelMap[msg.SocketId]; ok {
 			outgoingMessage = msg.Message
@@ -73,12 +73,15 @@ func (c *Chat) ProcessMessage(msg server.Message) {
 			outgoingMessage = "You must join a channel first via ':join <channel>'"
 		}
 	}
-	c.sendMessages(socketIds, outgoingMessage)
+	c.SendMessages(socketIds, outgoingMessage)
 }
 
-func (c *Chat) sendMessages(socketIds map[uint]struct{}, message string) {
-	log.Printf("Sending message from chat to server: '%v' to sockets: %v", message, socketIds)
-	for socketId, _ := range socketIds {
+func (c *Chat) SendMessages(socketIds map[uint]struct{}, message string) {
+	log.Printf("Sending message from chat to server: '%v' to sockets: %v\n", message, socketIds)
+	for socketId := range socketIds {
+		log.Printf("sending to %v\n", socketId)
 		c.out <- server.NewMessage(socketId, message)
+		log.Printf("sent to %v\n", socketId)
 	}
+	log.Print("done sending from chat")
 }
