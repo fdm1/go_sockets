@@ -8,25 +8,35 @@ import (
 
 type Socket struct {
 	id  uint
-	out chan Message
+	OutToServer chan Message
+  InFromServer chan Message
 }
 
-func NewSocket(id uint, out chan Message) *Socket {
-	return &Socket{
-		id,
-		out,
+func NewSocket(s *Server, conn *websocket.Conn) {
+  newSocket := &Socket{
+		s.currentId,
+		s.InFromSockets,
+    make(chan Message),
 	}
+
+	s.sockets[s.currentId] = newSocket
+	s.currentId += 1
+	log.Printf("Socket %v connected\n", newSocket.id)
+  newSocket.ListenForMessages(s, conn)
 }
 
-func (socket *Socket) ListenForMessages(conn *websocket.Conn) {
-	for {
-		mt, message, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("error reading message:", err)
-			break
-		}
-		if mt == websocket.TextMessage {
-			socket.out <- NewMessage(socket.id, string(message))
-		}
-	}
+func (socket *Socket) ListenForMessages(s *Server, conn *websocket.Conn) {
+  for {
+    mt, message, err := conn.ReadMessage()
+    if err != nil {
+      log.Printf("Socket %v disconnected (%v) \n", socket.id, err)
+      // socket.OutToServer <- NewMessage(socket.id, "!leave")
+      delete(s.sockets, socket.id)
+      break
+    }
+    if mt == websocket.TextMessage {
+      socket.OutToServer <- NewMessage(socket.id, string(message))
+    }
+  }
 }
+

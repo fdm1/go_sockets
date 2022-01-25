@@ -10,10 +10,12 @@ import (
 // TODO: close all sockets on interrupt
 
 type Server struct {
-	sockets   map[uint]*Socket
-	currentId uint
-	in        chan Message
-	out       chan Message
+	sockets       map[uint]*Socket
+	currentId     uint
+	InFromSockets chan Message
+	OutToChat     chan Message
+	InFromChat    chan Message
+	OutToSockets  chan Message
 }
 
 var upgrader = websocket.Upgrader{} // use default options
@@ -24,18 +26,29 @@ func NewServer() *Server {
 		0,
 		make(chan Message),
 		make(chan Message),
+		make(chan Message),
+		make(chan Message),
 	}
 
 	go func() {
-		for msg := range server.in {
-			log.Printf("recv: %s", msg.message)
+		for msg := range server.InFromSockets {
+			log.Printf("server recv from sockets: %s", msg.Message)
+			server.OutToChat <- msg.FromMessage(string(msg.Message))
 		}
 	}()
+
+	// go func() {
+	// 	for msg := range server.InFromChat {
+	// 		log.Printf("server recv from chat: %s", msg.Message)
+  //     // server.sockets[msg.SocketId].In
+	// 		// server.OutToSockets <- msg.FromMessage(string(msg.Message))
+	// 	}
+	// }()
 
 	return server
 }
 
-func (server *Server) HandleConnection(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
@@ -43,8 +56,5 @@ func (server *Server) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 
-	socket := NewSocket(server.currentId, server.in)
-	server.sockets[server.currentId] = socket
-	server.currentId += 1
-	socket.ListenForMessages(c)
+	NewSocket(s, c)
 }
